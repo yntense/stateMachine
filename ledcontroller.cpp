@@ -53,7 +53,7 @@ void LedController::onHandleLedEvent()
                     case BLINK:
                         qDebug() << "当前 Led 为点亮状态, 转换为闪烁状态";
                         m_ledState = BLINK;
-                        startBlink(1000);
+                        startBlink(msg.toInt());
                     break;
                     case CLOSE:
                         qDebug() << "当前 Led 为点亮状态, 转换为关闭状态";
