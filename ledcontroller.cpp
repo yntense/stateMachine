@@ -4,6 +4,12 @@
 #include "ledcontroller.h"
 #include "ui_widget.h"
 
+/**
+ * @author 公众号：嵌入式小屋
+ *         github：https://github.com/yntense/stateMachine.git
+ * @brief LedController::LedController
+ * @param parent
+ */
 LedController::LedController(QObject *parent) : QObject(parent)
 {
 
