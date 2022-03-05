@@ -2,6 +2,11 @@
 
 #include "widget.h"
 #include "ui_widget.h"
+#include "mqttreceiver.h"
+#include "tools.h"
+#include <QJsonObject>
+
+
 
 Widget::Widget(QWidget *parent)
     : QWidget(parent)
@@ -12,6 +17,17 @@ Widget::Widget(QWidget *parent)
     QIntValidator value(0, 1000000, this);
     ui->interval->setValidator(&value);
     led = new LedController(ui, this);
+
+#define mqttreceiver
+#ifdef mqttreceiver
+   MQTTReceiver *m_MQTTReceiver = new MQTTReceiver();
+   m_MQTTReceiver->init("www.beatingcai.com", "test", "public");
+   emit m_MQTTReceiver->start();
+#endif
+
+    messageCenter = new HandleMessage();
+    connect(m_MQTTReceiver, &MQTTReceiver::dispatchMessage, messageCenter, &HandleMessage::onReceiveMessage);
+    messageCenter->registerMessageListen("led", (MessageDevice *)led);
 }
 
 Widget::~Widget()
@@ -23,36 +39,49 @@ Widget::~Widget()
 
 void Widget::on_Light_clicked()
 {
-    LedController::eLedEvent event = {
-        .cmd = LedController::LIGHT
+    QJsonObject msg{
+        {"msgId",100},
+        {"clientID", "mini-code"},
+        {"operation", 0},
+        {"destSubDevice", "led"},
+        {"arg",0},
+        {"payload", 500}
     };
 
-    emit led->controlLedState(event);
+    emit led->controlLedState(msg);
 }
 
 void Widget::on_Blink_clicked()
 {
+
     bool ok = false;
     QString intervalString = ui->interval->text();
-    intervalString.toInt(&ok, 10);
+    int interval = intervalString.toInt(&ok, 10);
     if(ok){
-        LedController::eLedEvent event = {
-            .cmd = LedController::BLINK,
-            .msg = intervalString
+        QJsonObject msg{
+            {"msgId",100},
+            {"clientID", "mini-code"},
+            {"operation", 0},
+            {"destSubDevice", "led"},
+            {"arg",2},
+            {"payload", interval}
         };
-
-        emit led->controlLedState(event);
+        emit led->controlLedState(msg);
     }
-
 
 }
 
 void Widget::on_Close_clicked()
 {
-    LedController::eLedEvent event = {
-        .cmd = LedController::CLOSE
+    QJsonObject msg{
+        {"msgId",100},
+        {"clientID", "mini-code"},
+        {"operation", 0},
+        {"destSubDevice", "led"},
+        {"arg",1},
+        {"payload", 500}
     };
 
-    emit led->controlLedState(event);
+    emit led->controlLedState(msg);
 }
 

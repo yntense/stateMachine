@@ -3,6 +3,7 @@
 
 #include <QWidget>
 #include "ledcontroller.h"
+#include "handlemessage.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class Widget; }
@@ -27,5 +28,6 @@ private slots:
 private:
     Ui::Widget *ui;
     LedController *led;
+    HandleMessage *messageCenter;
 };
 #endif // WIDGET_H
