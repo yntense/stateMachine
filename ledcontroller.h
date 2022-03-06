@@ -4,19 +4,22 @@
 #include <QObject>
 #include <QQueue>
 #include <QTimer>
+#include <QJsonObject>
+
+#include <messagedevice.h>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class Widget; }
 QT_END_NAMESPACE
 
-class LedController : public QObject
+class LedController : public MessageDevice
 {
     Q_OBJECT
 public:
     typedef enum {
         LIGHT,
-        BLINK,
-        CLOSE
+        CLOSE,
+        BLINK
     }eLedState,eLedCmd;
 
     typedef struct {
@@ -28,9 +31,10 @@ public:
     explicit LedController(Ui::Widget *ui, QObject *parent = nullptr);
 
 
+
 private:
     eLedState m_ledState = CLOSE;
-    QQueue<eLedEvent> m_cmdQueue;
+    QQueue<QJsonObject> m_messageQueue;
     bool m_handleMessage = false;
     QTimer *timer;
     Ui::Widget *m_ui;
@@ -38,18 +42,19 @@ private:
     QPixmap *ledClosePic;
 
 signals:
-    void controlLedState(eLedEvent enent);
+    void controlLedState(const QJsonObject &msg);
+    void messageReponse(const QJsonObject &response);
 
 private slots:
-    void onControlLedState(eLedEvent enent);
     void onHandleLedEvent();
     void onHandleTimeOut();
+    void onHandleMessage(const QJsonObject &msg);
 
 private:
-    void startBlink(int interval);
-    void stopBlink();
-    void closeLed();
-    void lightLed();
+    int8_t startBlink(int interval);
+    int8_t stopBlink();
+    int8_t closeLed();
+    int8_t lightLed();
 
 
 };

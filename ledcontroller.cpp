@@ -10,17 +10,17 @@
  * @brief LedController::LedController
  * @param parent
  */
-LedController::LedController(QObject *parent) : QObject(parent)
+LedController::LedController(QObject *parent) : MessageDevice(parent)
 {
 
 }
 
-LedController::LedController(Ui::Widget *ui, QObject *parent) : QObject(parent)
+LedController::LedController(Ui::Widget *ui, QObject *parent) : MessageDevice(parent)
 {
     //注册自定义类型，才能用于信号与槽的传递
     qRegisterMetaType<eLedEvent>("LedController::eLedEvent");
     m_ui = ui;
-    connect(this, &LedController::controlLedState, this,  &LedController::onControlLedState);
+    connect(this, &LedController::controlLedState, this,  &LedController::onHandleMessage);
     timer = new QTimer(this);
     connect(timer, &QTimer::timeout, this, &LedController::onHandleTimeOut);
     ledLightPic = new QPixmap(QString::fromLocal8Bit(":/resource/ledLight.png"));
@@ -28,24 +28,38 @@ LedController::LedController(Ui::Widget *ui, QObject *parent) : QObject(parent)
     closeLed();
 }
 
-void LedController::onControlLedState(eLedEvent enent)
+
+void LedController::onHandleMessage(const QJsonObject &msg)
 {
     if(m_handleMessage)
     {
-        m_cmdQueue.enqueue(enent);
+        m_messageQueue.enqueue(msg);
     }else{
-        m_cmdQueue.enqueue(enent);
+        m_messageQueue.enqueue(msg);
         QTimer::singleShot(0, this, &LedController::onHandleLedEvent);
     }
 }
 
 void LedController::onHandleLedEvent()
 {
-    if (!m_cmdQueue.empty()) {
+    if (!m_messageQueue.empty()) {
         //说明正在处理信息
         m_handleMessage = true;
-        eLedEvent ledEvent = m_cmdQueue.dequeue();
-        QString  msg = ledEvent.msg;
+        QJsonObject ledMessage = m_messageQueue.dequeue();
+        eLedEvent ledEvent;
+        QString msg;
+        int interval = 0;
+        switch (ledMessage.value("operation").toInt()) {
+            case 0x00:
+                ledEvent.cmd = (eLedCmd)ledMessage.value("arg").toInt();
+                interval = ledMessage.value("payload").toInt();
+            break;
+        default:
+            break;
+        }
+
+        QString response;
+        int code = -1;
 
         //根据Led状态散转
         switch(m_ledState)
@@ -54,17 +68,22 @@ void LedController::onHandleLedEvent()
                 switch (ledEvent.cmd)
                 {
                     case LIGHT:
+                        response = "当前 Led 已经为点亮状态";
                         qDebug() << "当前 Led 已经为点亮状态";
+                        code = 0;
                     break;
                     case BLINK:
+                        response = "当前 Led 为点亮状态, 转换为闪烁状态";
                         qDebug() << "当前 Led 为点亮状态, 转换为闪烁状态";
                         m_ledState = BLINK;
-                        startBlink(msg.toInt());
+                        startBlink(interval);
+                        code = 0;
                     break;
                     case CLOSE:
+                        response = "当前 Led 为点亮状态, 转换为关闭状态";
                         qDebug() << "当前 Led 为点亮状态, 转换为关闭状态";
                         m_ledState = CLOSE;
-                        closeLed();
+                        code = closeLed();
                     break;
 
                     default:
@@ -75,21 +94,24 @@ void LedController::onHandleLedEvent()
                 switch (ledEvent.cmd)
                 {
                     case LIGHT:
+                        response = "当前 Led 为闪烁状态，转换为点亮状态";
                         qDebug() << "当前 Led 为闪烁状态，转换为点亮状态";
                         m_ledState = LIGHT;
                         stopBlink();
-                        lightLed();
+                        code = lightLed();
                     break;
                     case BLINK:
-                        qDebug() << "当前 Led 为闪烁状态，修改闪烁间隔为 "+ msg + " ms";
-                        startBlink(msg.toInt());
+                        response = "当前 Led 为闪烁状态，修改闪烁间隔为 "+ QString("%1").arg(interval) + " ms";
+                        qDebug() << "当前 Led 为闪烁状态，修改闪烁间隔为 "+ QString("%1").arg(interval) + " ms";
+                        code = startBlink(interval);
                         m_ledState = BLINK;
                     break;
                     case CLOSE:
+                        response = "当前 Led 为闪烁状态，转换为关闭状态";
                         qDebug() << "当前 Led 为闪烁状态，转换为关闭状态";
                         m_ledState = CLOSE;
                         stopBlink();
-                        closeLed();
+                        code = closeLed();
                     break;
 
                     default:
@@ -100,17 +122,21 @@ void LedController::onHandleLedEvent()
                 switch (ledEvent.cmd)
                 {
                     case LIGHT:
+                        response = "当前 Led 为关闭状态，转换为点亮状态";
                         qDebug() << "当前 Led 为关闭状态，转换为点亮状态";
                         m_ledState = LIGHT;
-                        lightLed();
+                        code = lightLed();
                     break;
                     case BLINK:
-                        qDebug() << "当前 Led 为关闭状态，转换为闪烁状态,间隔为 " + msg + " ms";
+                        response = "当前 Led 为关闭状态，转换为闪烁状态,间隔为 " + QString("%1").arg(interval) + " ms";
+                        qDebug() << "当前 Led 为关闭状态，转换为闪烁状态,间隔为 " + QString("%1").arg(interval) + " ms";
                         m_ledState = BLINK;
-                        startBlink(msg.toInt());
+                        code = startBlink(interval);
                     break;
                     case CLOSE:
+                        response = "当前 Led 已经为关闭状态";
                         qDebug() << "当前 Led 已经为关闭状态";
+                        code = 0;
                     break;
 
                     default:
@@ -118,31 +144,45 @@ void LedController::onHandleLedEvent()
                 }
             break;
         }
+        QJsonObject responseJson = {
+            {"msgId", ledMessage.value("msgId").toInt()},
+            {"MessageType", ledMessage.value("MessageType").toString()},
+            {"clientID", ledMessage.value("clientID").toString()},
+            {"operation", ledMessage.value("operation").toInt()},
+            {"destSubDevice", ledMessage.value("destSubDevice").toString()},
+            {"status",code},
+            {"msg", response}
+        };
+         emit messageReponse(responseJson);
          m_handleMessage = false;
     }
 }
 
-void LedController::startBlink(int interval)
+int8_t LedController::startBlink(int interval)
 {
     timer->start(interval);
+    return 0;
 }
 
-void LedController::stopBlink()
+int8_t LedController::stopBlink()
 {
     timer->stop();
+    return 0;
 }
 
 
-void LedController::closeLed()
+int8_t LedController::closeLed()
 {
     m_ui->ledImage->setPixmap(*ledClosePic);
     m_ui->ledImage->setScaledContents(true);
+    return 0;
 }
 
-void LedController::lightLed()
+int8_t LedController::lightLed()
 {
     m_ui->ledImage->setPixmap(*ledLightPic);
     m_ui->ledImage->setScaledContents(true);
+    return 0;
 }
 
 /**
