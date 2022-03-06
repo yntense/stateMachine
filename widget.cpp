@@ -28,6 +28,9 @@ Widget::Widget(QWidget *parent)
     messageCenter = new HandleMessage();
     connect(m_MQTTReceiver, &MQTTReceiver::dispatchMessage, messageCenter, &HandleMessage::onReceiveMessage);
     messageCenter->registerMessageListen("led", (MessageDevice *)led);
+    messageCenter->registerMessageInput("mqtt", (MessageDevice *)m_MQTTReceiver);
+
+    connect(led, &LedController::messageReponse, messageCenter, &HandleMessage::onReceiveMessageResponse);
 }
 
 Widget::~Widget()

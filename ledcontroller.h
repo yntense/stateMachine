@@ -43,6 +43,7 @@ private:
 
 signals:
     void controlLedState(const QJsonObject &msg);
+    void messageReponse(const QJsonObject &response);
 
 private slots:
     void onHandleLedEvent();
@@ -50,10 +51,10 @@ private slots:
     void onHandleMessage(const QJsonObject &msg);
 
 private:
-    void startBlink(int interval);
-    void stopBlink();
-    void closeLed();
-    void lightLed();
+    int8_t startBlink(int interval);
+    int8_t stopBlink();
+    int8_t closeLed();
+    int8_t lightLed();
 
 
 };
