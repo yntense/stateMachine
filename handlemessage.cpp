@@ -26,7 +26,7 @@ void HandleMessage::onReceiveMessage(const QJsonObject &msg)
         m_messageQueue.enqueue(msg);
     }else{
         m_messageQueue.enqueue(msg);
-        QTimer::singleShot(0, this, &HandleMessage::onHandleMessage);l
+        QTimer::singleShot(0, this, &HandleMessage::onHandleMessage);
     }
 }
 
