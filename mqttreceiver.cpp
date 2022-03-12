@@ -5,6 +5,7 @@
 #include <QString>
 #include <QJsonDocument>
 #include <QTimer>
+#include <QThread>
 
 #include "mqttreceiver.h"
 #include "tools.h"
@@ -16,7 +17,7 @@
 
 MQTTReceiver::MQTTReceiver(QObject *parent) : MessageDevice(parent)
 {
-    m_client = new QMqttClient(this);       //QMqttClient 对象
+    qDebug() << "MQTTReceiver 在线程ID为: " << QThread::currentThreadId()  << " 中运行";
     connect(this, &MQTTReceiver::start, this, &MQTTReceiver::onStart);
 }
 
@@ -42,6 +43,9 @@ void MQTTReceiver::onResponse()
 
 void MQTTReceiver::onStart()
 {
+    qDebug() << "QMqttClient 在线程ID为: " << QThread::currentThreadId()  << " 中运行";
+    m_client = new QMqttClient(this);       //QMqttClient 对象
+
     m_client->setHostname(m_hostname);
     m_client->setPort(MQTT_PORT);
     m_client->setUsername(m_username);

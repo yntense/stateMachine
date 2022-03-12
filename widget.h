@@ -28,6 +28,7 @@ private slots:
 private:
     Ui::Widget *ui;
     LedController *led;
-    HandleMessage *messageCenter;
+    QThread m_handleMessageThread;
+    QThread m_MQTTReceiverThread;
 };
 #endif // WIDGET_H

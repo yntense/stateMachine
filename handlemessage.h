@@ -5,6 +5,7 @@
 #include <QJsonObject>
 #include <QQueue>
 #include <QHash>
+#include <QThread>
 
 #include "messagedevice.h"
 

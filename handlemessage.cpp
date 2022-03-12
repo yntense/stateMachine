@@ -1,5 +1,7 @@
 
 #include <QTimer>
+#include <QDebug>
+
 #include "handlemessage.h"
 
 
@@ -7,6 +9,8 @@ HandleMessage::HandleMessage(QObject *parent) : QObject(parent)
 {
 
 }
+
+
 void HandleMessage::registerMessageListen(const QString &name, const MessageDevice *subDevice)
 {
     m_recordDevice.insert(name, subDevice);
@@ -20,7 +24,7 @@ void HandleMessage::registerMessageInput(const QString &name, const MessageDevic
 
 void HandleMessage::onReceiveMessage(const QJsonObject &msg)
 {
-
+    qDebug() << "threadId" <<QThread::currentThreadId();
     if(m_handleMessage)
     {
         m_messageQueue.enqueue(msg);

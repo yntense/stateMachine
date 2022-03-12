@@ -13,19 +13,25 @@ Widget::Widget(QWidget *parent)
     , ui(new Ui::Widget)
 {
 
-    ui->setupUi(this);
-    QIntValidator value(0, 1000000, this);
-    ui->interval->setValidator(&value);
-    led = new LedController(ui, this);
+   ui->setupUi(this);
+   QIntValidator value(0, 1000000, this);
+   ui->interval->setValidator(&value);
+   led = new LedController(ui, this);
 
-#define mqttreceiver
-#ifdef mqttreceiver
    MQTTReceiver *m_MQTTReceiver = new MQTTReceiver();
+   m_MQTTReceiver->moveToThread(&m_MQTTReceiverThread);
+   connect(&m_MQTTReceiverThread, &QThread::finished, m_MQTTReceiver, &QObject::deleteLater);
+   m_MQTTReceiverThread.start();
    m_MQTTReceiver->init("www.beatingcai.com", "test", "public");
+   //该信号发出之后，m_MQTTReceiver的成员函数是在 m_MQTTReceiverThread 运行
    emit m_MQTTReceiver->start();
-#endif
 
-    messageCenter = new HandleMessage();
+    // HandleMessage 运行在其他线程
+    HandleMessage *messageCenter = new HandleMessage();
+    messageCenter->moveToThread(&m_handleMessageThread);
+    connect(&m_handleMessageThread, &QThread::finished, messageCenter, &QObject::deleteLater);
+    m_handleMessageThread.start();
+
     connect(m_MQTTReceiver, &MQTTReceiver::dispatchMessage, messageCenter, &HandleMessage::onReceiveMessage);
     messageCenter->registerMessageListen("led", (MessageDevice *)led);
     messageCenter->registerMessageInput("mqtt", (MessageDevice *)m_MQTTReceiver);
@@ -35,6 +41,10 @@ Widget::Widget(QWidget *parent)
 
 Widget::~Widget()
 {
+    m_handleMessageThread.quit();
+    m_handleMessageThread.wait();
+    m_MQTTReceiverThread.quit();
+    m_MQTTReceiverThread.wait();
     delete ui;
 }
 
