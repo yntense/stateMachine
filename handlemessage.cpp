@@ -10,7 +10,6 @@ HandleMessage::HandleMessage(QObject *parent) : QObject(parent)
 
 }
 
-
 void HandleMessage::registerMessageListen(const QString &name, const MessageDevice *subDevice)
 {
     m_recordDevice.insert(name, subDevice);
