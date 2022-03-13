@@ -10,7 +10,7 @@ QHash<QtMsgType , QFile *> Log::m_logFileNames;
 Log::Log(QObject *parent) : QObject(parent)
 {
     //设置 qDebug() 的输出格式
-    qSetMessagePattern("%{message} {File:%{file} Line:%{line} Function:%{function} DateTime:%{time [yyyy-MM-dd hh:mm:ssm ddd]}}");
+    qSetMessagePattern("%{message} {File:%{file} Line:%{line} Function:%{function} DateTime:%{time [yyyy-MM-dd hh:mm:ss ddd]}}");
 
     MyAPPConfig * appConfig = MyAPPConfig::getAppConfig();
     QString log_path = appConfig->readConfig(appConfig->getAppConfigKey(MyAPPConfig::LOG),appConfig->getAppConfigKey(MyAPPConfig::LOG_PATH), "").toString();
