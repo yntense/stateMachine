@@ -13,6 +13,7 @@
 #define GEN_LOCAL_TOPIC(id) (QString("/%1/control").arg(id))
 #define GEN_PUBLIC_TOPIC(id) (QString("/%1/device/control").arg(id))
 #define GEN_RESPONSE_TOPIC(id) (QString("/%1/control/response").arg(id))
+#define GEN_DEVICE_STATE_TOPIC(id) (QString("/%1/state").arg(id))
 
 
 MQTTReceiver::MQTTReceiver(QObject *parent) : MessageDevice(parent)
@@ -44,12 +45,16 @@ void MQTTReceiver::onResponse()
 void MQTTReceiver::onStart()
 {
     qDebug() << "QMqttClient 在线程ID为: " << QThread::currentThreadId()  << " 中运行";
-    m_client = new QMqttClient(this);       //QMqttClient 对象
+    m_client = new QMqttClient();       //QMqttClient 对象
 
     m_client->setHostname(m_hostname);
     m_client->setPort(MQTT_PORT);
     m_client->setUsername(m_username);
     m_client->setPassword(m_password);
+    m_client->setWillTopic(GEN_DEVICE_STATE_TOPIC(m_clientId));
+    m_client->setWillRetain(true);
+    m_client->setWillMessage("offline");
+
 
     connect(m_client, &QMqttClient::stateChanged, this, &MQTTReceiver::onStateChanged);
     connect(m_client, &QMqttClient::disconnected, this, &MQTTReceiver::onBrokerDisconnected);
@@ -90,6 +95,7 @@ void MQTTReceiver::onBrokerDisconnected()
 void MQTTReceiver::onBrokerConnected()
 {
     qDebug() << "state connected";
+    emit myState(m_mqttState);
     m_localControlTopic = GEN_LOCAL_TOPIC(m_clientId);
     QMqttTopicFilter topic(m_localControlTopic);
     qDebug()<< "topic :" << m_localControlTopic;
@@ -102,6 +108,8 @@ void MQTTReceiver::onBrokerConnected()
 
 void MQTTReceiver::onStateChanged(QMqttClient::ClientState state)
 {
+    //更新网络状态
+    emit myState(m_mqttState);
     m_mqttState = state;
     switch (state)
     {
@@ -186,16 +194,24 @@ void MQTTReceiver::onHandleMessageResponse()
         //说明正在处理信息
         m_handleMessage = true;
         QJsonObject responseMessage = m_messageQueue.head();
-//        qDebug() << "responseMessage:" << responseMessage;
-        sendMessgebyTopic(QMqttTopicName(GEN_RESPONSE_TOPIC(responseMessage.value("clientID").toString())),responseMessage);
+        QStringList keys = responseMessage.keys();
+        //包含状态，说明为更新 device 状态
+        if(keys.contains("State") && !keys.contains("clientID"))
+        {
+            //发送到设备状态主题
+            sendMessgebyTopic(QMqttTopicName(GEN_DEVICE_STATE_TOPIC(m_clientId)), responseMessage, 0, true);
+
+        }else{
+            sendMessgebyTopic(QMqttTopicName(GEN_RESPONSE_TOPIC(responseMessage.value("clientID").toString())),responseMessage);
+        }
         m_handleMessage = false;
     }
 }
 
-void MQTTReceiver::sendMessgebyTopic(const QMqttTopicName &topic, const QJsonObject &responseMessage)
+void MQTTReceiver::sendMessgebyTopic(const QMqttTopicName &topic, const QJsonObject &responseMessage, quint8 qos , bool retain )
 {
     static int transmitCount = 0;
-    if(m_client->publish(topic, QString(QJsonDocument(responseMessage).toJson()).toUtf8()) != -1)
+    if(m_client->publish(topic, QString(QJsonDocument(responseMessage).toJson()).toUtf8(), qos, retain) != -1)
     {
         m_messageQueue.dequeue();
         if(!m_messageQueue.empty())

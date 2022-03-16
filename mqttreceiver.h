@@ -20,7 +20,7 @@ public:
 
 signals:
     void dispatchMessage(const QJsonObject &msg);
-    void myState();
+    void myState(QMqttClient::ClientState);     //更新MQTT的联网状态
     void start();
 
 public slots:
@@ -57,7 +57,7 @@ private:
     bool m_handleMessage = false;
     QQueue<QJsonObject> m_messageQueue;
 
-    void sendMessgebyTopic(const QMqttTopicName &topic, const QJsonObject &responseMessage);
+    void sendMessgebyTopic(const QMqttTopicName &topic, const QJsonObject &responseMessage, quint8 qos = 0, bool retain = false);
 };
 
 #endif // MQTTRECEIVER_H

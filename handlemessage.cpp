@@ -33,7 +33,7 @@ void HandleMessage::onReceiveMessage(const QJsonObject &msg)
     }
 }
 
-void HandleMessage::onReceiveMessageResponse(const QJsonObject &msg)
+void HandleMessage::onReceiveMessageResponse(const QJsonObject msg)
 {
 
     if(m_handleMessageResponse)
@@ -76,6 +76,13 @@ void HandleMessage::onHandleMessageResponse()
       {
          message.remove("MessageType");
          emit m_recordInputDevice.value(inputDevice)->sendMessage(message);
+      }else if(inputDevice == "ALL")
+      {
+          QList< const MessageDevice * > inputDevices =  m_recordInputDevice.values();
+          for(int i = 0; i < inputDevices.size(); i++)
+          {
+              emit inputDevices[i]->sendMessage(message);
+          }
       }
       if(!m_messageResponseQueue.empty())
       {

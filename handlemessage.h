@@ -23,7 +23,7 @@ public:
 public slots:
     void onReceiveMessage(const QJsonObject &msg);
     void onHandleMessage();
-    void onReceiveMessageResponse(const QJsonObject &msg);
+    void onReceiveMessageResponse(const QJsonObject msg);
     void onHandleMessageResponse();
 
 

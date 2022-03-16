@@ -37,6 +37,8 @@ Widget::Widget(QWidget *parent)
     messageCenter->registerMessageInput("mqtt", (MessageDevice *)m_MQTTReceiver);
 
     connect(led, &LedController::messageReponse, messageCenter, &HandleMessage::onReceiveMessageResponse);
+    connect(m_MQTTReceiver, &MQTTReceiver::myState, led, &LedController::onListenNetState);
+
 }
 
 Widget::~Widget()
