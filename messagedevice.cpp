@@ -10,3 +10,8 @@ MessageDevice::~MessageDevice()
 {
 
 }
+
+void MessageDevice::onHandleMessage(const QJsonObject &msg)
+{
+   Q_UNUSED(msg)
+}

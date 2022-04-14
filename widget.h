@@ -17,6 +17,11 @@ public:
     Widget(QWidget *parent = nullptr);
     ~Widget();
 
+signals:
+    void sendMessage(const QJsonObject &msg) const;
+    void dispatchMessage(const QJsonObject &msg);
+
+
 private slots:
 
     void on_Light_clicked();
@@ -25,10 +30,13 @@ private slots:
 
     void on_Close_clicked();
 
+    void onHandleMessage(const QJsonObject &msg);
+
 private:
     Ui::Widget *ui;
     LedController *led;
     QThread m_handleMessageThread;
     QThread m_MQTTReceiverThread;
+    MessageDevice * m_widgetDevice = nullptr;
 };
 #endif // WIDGET_H

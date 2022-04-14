@@ -18,7 +18,7 @@ class LedController : public MessageDevice
     Q_OBJECT
 public:
     typedef enum {
-        LIGHT,
+        LIGHT = 0,
         CLOSE,
         BLINK
     }eLedState,eLedCmd;

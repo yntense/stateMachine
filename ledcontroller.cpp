@@ -4,12 +4,7 @@
 #include "ledcontroller.h"
 #include "ui_widget.h"
 
-/**
- * @author 公众号：嵌入式小屋
- *         github：https://github.com/yntense/stateMachine.git
- * @brief LedController::LedController
- * @param parent
- */
+
 LedController::LedController(QObject *parent) : MessageDevice(parent)
 {
 
@@ -54,12 +49,12 @@ void LedController::onHandleLedEvent()
         switch (ledMessage.value("operation").toInt()) {
             case 0x00:
                 ledEvent.cmd = (eLedCmd)ledMessage.value("arg").toInt();
-                m_blinkInterval = ledMessage.value("payload").toInt();
+                interval = ledMessage.value("payload").toInt();
             break;
         default:
             break;
         }
-        interval = m_blinkInterval;
+
         QString response;
         int code = -1;
 
@@ -80,14 +75,15 @@ void LedController::onHandleLedEvent()
                         onStateChange(BLINK, interval, response);
                         m_ledState = BLINK;
                         startBlink(interval);
-                        code = 0;
+                        code = 2;
                     break;
                     case CLOSE:
                         response = "当前 Led 为点亮状态, 转换为关闭状态";
                         qDebug() << "当前 Led 为点亮状态, 转换为关闭状态";
                         onStateChange(CLOSE, interval, response);
                         m_ledState = CLOSE;
-                        code = closeLed();
+                        closeLed();
+                        code = 1;
                     break;
 
                     default:
@@ -103,14 +99,16 @@ void LedController::onHandleLedEvent()
                         onStateChange(LIGHT, interval, response);
                         m_ledState = LIGHT;
                         stopBlink();
-                        code = lightLed();
+                        lightLed();
+                        code = 0;
                     break;
                     case BLINK:
                         response = "当前 Led 为闪烁状态，修改闪烁间隔为 "+ QString("%1").arg(interval) + " ms";
                         qDebug() << "当前 Led 为闪烁状态，修改闪烁间隔为 "+ QString("%1").arg(interval) + " ms";
                         onStateChange(BLINK, interval, response);
-                        code = startBlink(interval);
+                        startBlink(interval);
                         m_ledState = BLINK;
+                        code = 2;
                     break;
                     case CLOSE:
                         response = "当前 Led 为闪烁状态，转换为关闭状态";
@@ -118,7 +116,8 @@ void LedController::onHandleLedEvent()
                         onStateChange(CLOSE, interval, response);
                         m_ledState = CLOSE;
                         stopBlink();
-                        code = closeLed();
+                        closeLed();
+                        code = 1;
                     break;
 
                     default:
@@ -133,20 +132,22 @@ void LedController::onHandleLedEvent()
                         qDebug() << "当前 Led 为关闭状态，转换为点亮状态";
                         onStateChange(LIGHT, interval, response);
                         m_ledState = LIGHT;
-                        code = lightLed();
+                        lightLed();
+                        code = 0;
                     break;
                     case BLINK:
                         response = "当前 Led 为关闭状态，转换为闪烁状态,间隔为 " + QString("%1").arg(interval) + " ms";
                         qDebug() << "当前 Led 为关闭状态，转换为闪烁状态,间隔为 " + QString("%1").arg(interval) + " ms";
                         onStateChange(BLINK, interval, response);
                         m_ledState = BLINK;
-                        code = startBlink(interval);
+                        startBlink(interval);
+                        code = 2;
                     break;
                     case CLOSE:
                         response = "当前 Led 已经为关闭状态";
                         qDebug() << "当前 Led 已经为关闭状态";
                         onStateChange(CLOSE, interval, response);
-                        code = 0;
+                        code = 1;
                     break;
 
                     default:
@@ -163,6 +164,7 @@ void LedController::onHandleLedEvent()
             {"status",code},
             {"msg", response}
         };
+        qDebug() << responseJson;
          emit messageReponse(responseJson);
          m_handleMessage = false;
     }
@@ -171,6 +173,7 @@ void LedController::onHandleLedEvent()
 int8_t LedController::startBlink(int interval)
 {
     timer->start(interval);
+    m_blinkInterval = interval;
     return 0;
 }
 
@@ -217,8 +220,10 @@ void LedController::onHandleTimeOut()
  */
 void LedController::onStateChange(const eLedState &state, int interval, const QString &msg)
 {
+    qDebug() << interval << m_blinkInterval;
    if( state != m_ledState )
    {
+       m_ledState = state;
        QJsonObject responseJson = {
            {"MessageType", "ALL"},
            {"State", m_ledState},
@@ -226,7 +231,19 @@ void LedController::onStateChange(const eLedState &state, int interval, const QS
            {"msg", msg},
        };
       emit messageReponse(responseJson);
+   }else if(interval != m_blinkInterval)
+   {
+       m_blinkInterval = interval;
+       QJsonObject responseJson = {
+           {"MessageType", "ALL"},
+           {"State", m_ledState},
+           {"interval", interval},
+           {"msg", msg},
+       };
+
+      emit messageReponse(responseJson);
    }
+
 }
 
 /**

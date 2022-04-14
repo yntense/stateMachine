@@ -14,6 +14,10 @@ Widget::Widget(QWidget *parent)
 {
 
    ui->setupUi(this);
+   m_widgetDevice = new MessageDevice(this);
+   connect(m_widgetDevice, &MessageDevice::sendMessage, this,  &Widget::sendMessage);
+   connect(this, &Widget::sendMessage, this, &Widget::onHandleMessage);
+
    QIntValidator value(0, 1000000, this);
    ui->interval->setValidator(&value);
    led = new LedController(ui, this);
@@ -33,8 +37,11 @@ Widget::Widget(QWidget *parent)
     m_handleMessageThread.start();
 
     connect(m_MQTTReceiver, &MQTTReceiver::dispatchMessage, messageCenter, &HandleMessage::onReceiveMessage);
+    connect(this, &Widget::dispatchMessage, messageCenter, &HandleMessage::onReceiveMessage);
     messageCenter->registerMessageListen("led", (MessageDevice *)led);
     messageCenter->registerMessageInput("mqtt", (MessageDevice *)m_MQTTReceiver);
+    messageCenter->registerMessageInput("widget", (MessageDevice *)this);
+
 
     connect(led, &LedController::messageReponse, messageCenter, &HandleMessage::onReceiveMessageResponse);
     connect(m_MQTTReceiver, &MQTTReceiver::myState, led, &LedController::onListenNetState);
@@ -56,14 +63,14 @@ void Widget::on_Light_clicked()
 {
     QJsonObject msg{
         {"msgId",100},
-        {"clientID", "mini-code"},
         {"operation", 0},
         {"destSubDevice", "led"},
         {"arg",0},
         {"payload", 500}
     };
+    msg.insert("MessageType", "widget");
 
-    emit led->controlLedState(msg);
+    emit this->dispatchMessage(msg);
 }
 
 void Widget::on_Blink_clicked()
@@ -75,13 +82,14 @@ void Widget::on_Blink_clicked()
     if(ok){
         QJsonObject msg{
             {"msgId",100},
-            {"clientID", "mini-code"},
             {"operation", 0},
             {"destSubDevice", "led"},
             {"arg",2},
             {"payload", interval}
         };
-        emit led->controlLedState(msg);
+        msg.insert("MessageType", "widget");
+
+        emit this->dispatchMessage(msg);
     }
 
 }
@@ -90,13 +98,18 @@ void Widget::on_Close_clicked()
 {
     QJsonObject msg{
         {"msgId",100},
-        {"clientID", "mini-code"},
         {"operation", 0},
         {"destSubDevice", "led"},
         {"arg",1},
         {"payload", 500}
     };
+    msg.insert("MessageType", "widget");
 
-    emit led->controlLedState(msg);
+    emit this->dispatchMessage(msg);
 }
 
+void Widget::onHandleMessage(const QJsonObject &msg)
+{
+    qDebug() << msg;
+
+}

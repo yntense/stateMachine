@@ -75,6 +75,7 @@ void HandleMessage::onHandleMessageResponse()
       if(m_recordInputDevice.contains(inputDevice))
       {
          message.remove("MessageType");
+         qDebug() << inputDevice;
          emit m_recordInputDevice.value(inputDevice)->sendMessage(message);
       }else if(inputDevice == "ALL")
       {

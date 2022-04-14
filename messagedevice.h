@@ -15,7 +15,7 @@ signals:
     void sendMessage(const QJsonObject &msg) const;
 
 private slots:
-    virtual void onHandleMessage(const QJsonObject &msg) = 0;
+    virtual void onHandleMessage(const QJsonObject &msg) ;
 
 };
 
